@@ -1,6 +1,7 @@
 [build]
+  base = "apps/web"
   command = "bun run build"
-  publish = "apps/web/dist"
+  publish = "dist"
 
 [[headers]]
   for = "/*"
