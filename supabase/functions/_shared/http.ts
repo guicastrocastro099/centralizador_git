@@ -4,6 +4,7 @@ const TOKEN_PATTERN = /github_pat_[A-Za-z0-9_]+|ghp_[A-Za-z0-9_]+|gho_[A-Za-z0-9
 
 export function sanitize(text: string): string {
   return text
+    .replace(/-----BEGIN OPENSSH PRIVATE KEY-----[\s\S]*?-----END OPENSSH PRIVATE KEY-----/g, "[segredo]")
     .replace(TOKEN_PATTERN, "[segredo]")
     .replace(/Bearer\s+\S+/gi, "Bearer [segredo]")
     .replace(/sha256=[0-9a-f]+/gi, "sha256=[assinatura]");

@@ -6,6 +6,7 @@ import { signJwt, verifyJwt } from "../supabase/functions/_shared/jwt.ts";
 import { handleApi } from "../supabase/functions/_shared/api.ts";
 import { handleWake } from "../supabase/functions/_shared/wake.ts";
 import { handleWebhook } from "../supabase/functions/_shared/webhook.ts";
+import { githubRequestHeaders } from "../supabase/functions/_shared/github.ts";
 
 setEnvReader((key) => {
   if (key === "JWT_SECRET") return "segredo-de-teste";
@@ -14,6 +15,13 @@ setEnvReader((key) => {
 });
 
 describe("segredos e acesso", () => {
+  test("chave ssh nao segue para a API do GitHub", () => {
+    const key = "-----BEGIN OPENSSH PRIVATE KEY-----\nAAAAB3\n-----END OPENSSH PRIVATE KEY-----";
+    const headers = githubRequestHeaders(key);
+    expect(headers.get("authorization")).toBeNull();
+    expect([...headers.values()].join(" ")).not.toContain("OPENSSH");
+  });
+
   test("tira token e assinatura de mensagens", () => {
     const text = sanitize("falhou github_pat_abc123 e ghp_zzz com Bearer ghp_outro sha256=abcd");
     expect(text).not.toContain("github_pat_");

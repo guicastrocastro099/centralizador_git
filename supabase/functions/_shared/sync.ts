@@ -7,6 +7,7 @@ import {
   githubMessage,
   githubRepo,
   githubUser,
+  isDeployKey,
   type ListedCommit,
 } from "./github.ts";
 import { env } from "./env.ts";
@@ -154,7 +155,7 @@ export async function connectRepository(connectionId: string, fullName: string) 
   });
 
   const hookUrl = env("WEBHOOK_PUBLIC_URL");
-  if (hookUrl) {
+  if (hookUrl && !isDeployKey(token)) {
     try {
       const secret = randomSecret();
       const hookId = await githubCreateHook(token, repo.full_name, hookUrl, secret);
@@ -169,7 +170,7 @@ export async function connectRepository(connectionId: string, fullName: string) 
 }
 
 export async function storeConnection(label: string, token: string) {
-  const login = await githubUser(token);
+  const login = isDeployKey(token) ? "chave-ssh" : await githubUser(token);
   const id = await ops.storeConnection(label, login, token);
   return { id, label, github_login: login };
 }

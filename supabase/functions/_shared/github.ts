@@ -8,17 +8,25 @@ export class GithubError extends Error {
   }
 }
 
+export function isDeployKey(token: string): boolean {
+  return token.includes("OPENSSH PRIVATE KEY");
+}
+
+export function githubRequestHeaders(token: string, init: RequestInit = {}): Headers {
+  const headers = new Headers(init.headers);
+  headers.set("accept", "application/vnd.github+json");
+  headers.set("x-github-api-version", "2022-11-28");
+  headers.set("user-agent", "centralizador-repositorios");
+  if (init.body) headers.set("content-type", "application/json");
+  if (isDeployKey(token)) headers.delete("authorization");
+  else headers.set("authorization", `Bearer ${token}`);
+  return headers;
+}
+
 export async function github(token: string, path: string, init: RequestInit = {}): Promise<Response> {
   const response = await fetch(`${API}${path}`, {
     ...init,
-    headers: {
-      accept: "application/vnd.github+json",
-      authorization: `Bearer ${token}`,
-      "x-github-api-version": "2022-11-28",
-      "user-agent": "centralizador-repositorios",
-      ...(init.body ? { "content-type": "application/json" } : {}),
-      ...Object.fromEntries(new Headers(init.headers)),
-    },
+    headers: githubRequestHeaders(token, init),
   });
   if (!response.ok) {
     await response.text();
