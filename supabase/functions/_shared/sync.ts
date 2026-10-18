@@ -1,13 +1,18 @@
-import { ops, type RepoSlice } from "./db.ts";
+import { ops, userClient, type RepoSlice } from "./db.ts";
 import {
   githubCommit,
+  githubCommitPage,
+  githubCommitView,
   githubCommits,
+  githubContents,
   githubCreateHook,
   githubLanguages,
   githubMessage,
+  githubReadmeHtml,
   githubRepo,
   githubUser,
   isDeployKey,
+  safeRepoPath,
   type ListedCommit,
 } from "./github.ts";
 import { env } from "./env.ts";
@@ -167,6 +172,60 @@ export async function connectRepository(connectionId: string, fullName: string) 
 
   await runSlice("manual", id);
   return { id, full_name: repo.full_name };
+}
+
+async function repositoryAccess(jwt: string, repositoryId: string) {
+  const { data, error } = await userClient(jwt)
+    .from("panel_repositories")
+    .select("connection_id, full_name, default_branch")
+    .eq("id", repositoryId)
+    .maybeSingle();
+  if (error || !data?.connection_id || !data.full_name) throw new Error("repositorio ausente");
+  const token = await ops.token(String(data.connection_id));
+  return { token, fullName: String(data.full_name), branch: String(data.default_branch || "HEAD") };
+}
+
+export async function repositoryMirror(jwt: string, repositoryId: string) {
+  const access = await repositoryAccess(jwt, repositoryId);
+  const repo = await githubRepo(access.token, access.fullName);
+  const [languages, listing, readme, commits] = await Promise.all([
+    githubLanguages(access.token, access.fullName),
+    githubContents(access.token, access.fullName, "", repo.default_branch),
+    githubReadmeHtml(access.token, access.fullName),
+    githubCommitPage(access.token, access.fullName, repo.default_branch),
+  ]);
+  const total = languages.reduce((sum, item) => sum + item.bytes, 0);
+  return {
+    repo: {
+      full_name: repo.full_name,
+      description: repo.description,
+      homepage: repo.homepage,
+      html_url: repo.html_url,
+      default_branch: repo.default_branch,
+      private: repo.private,
+      topics: repo.topics ?? [],
+      language: repo.language ?? null,
+      pushed_at: repo.pushed_at ?? null,
+      updated_at: repo.updated_at ?? null,
+    },
+    languages: languages
+      .map((item) => ({ ...item, percent: total ? Math.round((1000 * item.bytes) / total) / 10 : 0 }))
+      .sort((a, b) => b.bytes - a.bytes),
+    entries: listing.kind === "dir" ? listing.entries : [],
+    readme_html: readme,
+    commits,
+  };
+}
+
+export async function repositoryContents(jwt: string, repositoryId: string, rawPath: string) {
+  const access = await repositoryAccess(jwt, repositoryId);
+  const repo = await githubRepo(access.token, access.fullName);
+  return githubContents(access.token, access.fullName, safeRepoPath(rawPath), repo.default_branch);
+}
+
+export async function repositoryCommit(jwt: string, repositoryId: string, sha: string) {
+  const access = await repositoryAccess(jwt, repositoryId);
+  return githubCommitView(access.token, access.fullName, sha);
 }
 
 export async function storeConnection(label: string, token: string) {

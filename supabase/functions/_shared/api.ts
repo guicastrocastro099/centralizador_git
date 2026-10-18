@@ -3,7 +3,7 @@ import { env } from "./env.ts";
 import { bearer, corsHeaders, errorResponse, json, normalizePath, readJson } from "./http.ts";
 import { verifyJwt } from "./jwt.ts";
 import { GithubError, githubMessage } from "./github.ts";
-import { connectRepository, runSlice, storeConnection } from "./sync.ts";
+import { connectRepository, repositoryCommit, repositoryContents, repositoryMirror, runSlice, storeConnection } from "./sync.ts";
 
 const USER_PATCH = new Set([
   "paused",
@@ -60,6 +60,18 @@ export async function handleApi(req: Request): Promise<Response> {
       const created = await connectRepository(String(body.connection_id ?? ""), String(body.full_name ?? ""));
       return json(created, 201, cors);
     }
+
+    const mirrorMatch = path.match(/^\/repositories\/([0-9a-f-]{36})\/mirror$/);
+    if (req.method === "GET" && mirrorMatch) return json(await repositoryMirror(token, mirrorMatch[1]), 200, cors);
+
+    const contentsMatch = path.match(/^\/repositories\/([0-9a-f-]{36})\/contents$/);
+    if (req.method === "GET" && contentsMatch) {
+      const listing = await repositoryContents(token, contentsMatch[1], new URL(req.url).searchParams.get("path") ?? "");
+      return json(listing, 200, cors);
+    }
+
+    const gitCommitMatch = path.match(/^\/repositories\/([0-9a-f-]{36})\/github-commit\/([0-9a-f]{7,40})$/);
+    if (req.method === "GET" && gitCommitMatch) return json(await repositoryCommit(token, gitCommitMatch[1], gitCommitMatch[2]), 200, cors);
 
     const repoMatch = path.match(/^\/repositories\/([0-9a-f-]{36})$/);
     if (req.method === "PATCH" && repoMatch) {

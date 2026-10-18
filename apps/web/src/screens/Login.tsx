@@ -21,13 +21,13 @@ export function Login() {
       <form className="stack card" onSubmit={submit}>
         <div>
           <h1>Centralizador</h1>
-          <p className="muted">O que foi feito, sem abrir o repositório.</p>
+          <p className="muted">Depois de entrar, a tela mostra o repositório como o GitHub o devolve.</p>
         </div>
         <label>E-mail<input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
         <label>Senha<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
         {error ? <p className="error">{error}</p> : null}
         <button className="primary" type="submit" disabled={pending}>{pending ? "Entrando…" : "Entrar"}</button>
-        <p className="muted">Depois de entrar, a primeira tela pede a chave do GitHub. Sem ela, o painel fica vazio de propósito.</p>
+        <p className="muted">Sem chave, não há repositório para mostrar.</p>
       </form>
     </main>
   );

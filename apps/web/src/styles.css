@@ -92,6 +92,22 @@ textarea { min-height: 5rem; resize: vertical; }
 .bar { display: grid; grid-template-columns: 7rem 1fr auto; gap: 0.5rem; align-items: center; }
 .bar i { display: block; height: 0.45rem; background: var(--rust); border-radius: 99px; }
 .files { font-family: ui-monospace, monospace; font-size: 0.82rem; }
+.repo-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+.repo-head h1 { margin: 0; font-size: 1.7rem; }
+.repo-head p { margin: 0.35rem 0 0; }
+.crumbs { display: flex; gap: 0.35rem; flex-wrap: wrap; margin: 0; }
+.crumbs button { border: 0; background: transparent; color: var(--rust); padding: 0; }
+.crumbs button + button::before { content: "/"; color: var(--muted); margin-right: 0.35rem; }
+.files-table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.files-table td { border-top: 1px solid var(--line); padding: 0.6rem 0.8rem; }
+.files-table tr:first-child td { border-top: 0; }
+.files-table button { border: 0; background: transparent; padding: 0; }
+.files-table button.dir { font-weight: 600; }
+.source { margin: 0; overflow: auto; white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 0.82rem; }
+.readme :first-child { margin-top: 0; }
+.readme pre, .readme code { font-family: ui-monospace, monospace; }
+.readme pre { overflow: auto; background: white; padding: 0.8rem; border-radius: 10px; }
+.readme img { max-width: 100%; }
 @media (max-width: 700px) {
   .event { grid-template-columns: 1fr; }
   .top { align-items: flex-start; flex-direction: column; }

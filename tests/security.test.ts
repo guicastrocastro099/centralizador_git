@@ -6,7 +6,7 @@ import { signJwt, verifyJwt } from "../supabase/functions/_shared/jwt.ts";
 import { handleApi } from "../supabase/functions/_shared/api.ts";
 import { handleWake } from "../supabase/functions/_shared/wake.ts";
 import { handleWebhook } from "../supabase/functions/_shared/webhook.ts";
-import { githubRequestHeaders } from "../supabase/functions/_shared/github.ts";
+import { githubRequestHeaders, safeRepoPath, sanitizeHtml } from "../supabase/functions/_shared/github.ts";
 
 setEnvReader((key) => {
   if (key === "JWT_SECRET") return "segredo-de-teste";
@@ -15,6 +15,20 @@ setEnvReader((key) => {
 });
 
 describe("segredos e acesso", () => {
+  test("caminho do repositório não sobe de pasta", () => {
+    expect(safeRepoPath("apps/web")).toBe("apps/web");
+    expect(safeRepoPath("/apps/web/")).toBe("apps/web");
+    expect(() => safeRepoPath("../.env")).toThrow();
+    expect(() => safeRepoPath("a/../../etc")).toThrow();
+  });
+
+  test("readme do GitHub perde script", () => {
+    const html = sanitizeHtml("<p onclick=\"alert(1)\">oi</p><script>alert(1)</script>");
+    expect(html).not.toContain("script");
+    expect(html).not.toContain("onclick");
+    expect(html).toContain("oi");
+  });
+
   test("chave ssh nao segue para a API do GitHub", () => {
     const key = "-----BEGIN OPENSSH PRIVATE KEY-----\nAAAAB3\n-----END OPENSSH PRIVATE KEY-----";
     const headers = githubRequestHeaders(key);

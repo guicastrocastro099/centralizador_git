@@ -54,6 +54,9 @@ export type GithubRepo = {
   clone_url: string;
   owner: { login: string };
   topics?: string[];
+  language?: string | null;
+  pushed_at?: string | null;
+  updated_at?: string | null;
 };
 
 export async function githubRepo(token: string, fullName: string): Promise<GithubRepo> {
@@ -112,6 +115,110 @@ export async function githubCreateHook(token: string, fullName: string, url: str
   const body = await response.json() as { id?: number };
   if (!body.id) throw new Error("GitHub nao devolveu o webhook");
   return body.id;
+}
+
+export function safeRepoPath(value: string): string {
+  const path = value.replace(/^\/+|\/+$/g, "");
+  if (!path) return "";
+  if (path.length > 500 || path.split("/").some((part) => part === "" || part === "." || part === ".." || part.includes("\\"))) {
+    throw new Error("caminho invalido");
+  }
+  return path;
+}
+
+export function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
+    .replace(/\s(on\w+|style)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/href\s*=\s*("\s*javascript:[^"]*"|'\s*javascript:[^']*')/gi, "href=\"#\"")
+    .slice(0, 200_000);
+}
+
+export type GithubEntry = {
+  name: string;
+  path: string;
+  type: string;
+  size: number | null;
+  html_url: string;
+};
+
+export async function githubContents(token: string, fullName: string, path: string, ref: string): Promise<
+  | { kind: "dir"; entries: GithubEntry[] }
+  | { kind: "file"; name: string; path: string; html_url: string; size: number; text: string | null }
+> {
+  const suffix = path ? `/${path.split("/").map(encodeURIComponent).join("/")}` : "";
+  const response = await github(token, `/repos/${fullName}/contents${suffix}?ref=${encodeURIComponent(ref)}`);
+  const body = await response.json() as GithubEntry[] | { name: string; path: string; html_url: string; size?: number; encoding?: string; content?: string };
+  if (Array.isArray(body)) {
+    const entries = body.map((item) => ({
+      name: item.name,
+      path: item.path,
+      type: item.type,
+      size: item.size,
+      html_url: item.html_url,
+    })).sort((a, b) => Number(a.type !== "dir") - Number(b.type !== "dir") || a.name.localeCompare(b.name));
+    return { kind: "dir", entries };
+  }
+  let text: string | null = null;
+  if (body.encoding === "base64" && body.content && (body.size ?? 0) <= 100_000) {
+    const bytes = Uint8Array.from(atob(body.content.replace(/\n/g, "")), (char) => char.charCodeAt(0));
+    text = new TextDecoder().decode(bytes);
+  }
+  return { kind: "file", name: body.name, path: body.path, html_url: body.html_url, size: body.size ?? 0, text };
+}
+
+export async function githubReadmeHtml(token: string, fullName: string): Promise<string | null> {
+  const headers = githubRequestHeaders(token);
+  headers.set("accept", "application/vnd.github.html");
+  const response = await fetch(`${API}/repos/${fullName}/readme`, { headers });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    await response.text();
+    throw new GithubError(response.status);
+  }
+  return sanitizeHtml(await response.text());
+}
+
+export async function githubCommitPage(token: string, fullName: string, branch: string) {
+  const response = await github(token, `/repos/${fullName}/commits?sha=${encodeURIComponent(branch)}&per_page=100`);
+  const body = await response.json() as ListedCommit[];
+  return body.map((item) => ({
+    sha: item.sha,
+    message: item.commit.message,
+    author_name: item.commit.author?.name ?? null,
+    author_login: item.author?.login ?? null,
+    committed_at: item.commit.author?.date ?? null,
+    html_url: `https://github.com/${fullName}/commit/${item.sha}`,
+  }));
+}
+
+export async function githubCommitView(token: string, fullName: string, sha: string) {
+  const response = await github(token, `/repos/${fullName}/commits/${sha}`);
+  const body = await response.json() as {
+    sha?: string;
+    html_url?: string;
+    commit?: { message?: string; author?: { name?: string; date?: string } | null };
+    author?: { login?: string } | null;
+    stats?: { additions?: number; deletions?: number };
+    files?: GithubFile[];
+  };
+  return {
+    sha: body.sha ?? sha,
+    message: body.commit?.message ?? "",
+    author_name: body.commit?.author?.name ?? null,
+    author_login: body.author?.login ?? null,
+    committed_at: body.commit?.author?.date ?? null,
+    additions: body.stats?.additions ?? 0,
+    deletions: body.stats?.deletions ?? 0,
+    html_url: body.html_url ?? `https://github.com/${fullName}/commit/${sha}`,
+    files: (body.files ?? []).map((file) => ({
+      filename: file.filename,
+      status: file.status,
+      additions: file.additions ?? 0,
+      deletions: file.deletions ?? 0,
+    })),
+  };
 }
 
 export function githubMessage(error: unknown): string {
