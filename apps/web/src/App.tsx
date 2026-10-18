@@ -38,7 +38,15 @@ export function App() {
 
   if (!ready) return <main className="login"><p>Abrindo…</p></main>;
   if (!supabaseConfigured) {
-    return <main className="login"><p>Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY para entrar.</p></main>;
+    return (
+      <main className="login">
+        <form className="stack card">
+          <h1>Centralizador</h1>
+          <p>GitHub deste projeto: <a href="https://github.com/guicastrocastro099/centralizador_git">guicastrocastro099/centralizador_git</a></p>
+          <p>Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY para entrar.</p>
+        </form>
+      </main>
+    );
   }
   if (!session) return <Login />;
   if (roleError) {
