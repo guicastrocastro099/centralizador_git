@@ -27,6 +27,7 @@ export function Login() {
         <label>Senha<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
         {error ? <p className="error">{error}</p> : null}
         <button className="primary" type="submit" disabled={pending}>{pending ? "Entrando…" : "Entrar"}</button>
+        <p className="muted">GitHub deste projeto: <a href="https://github.com/guicastrocastro099/centralizador_git">guicastrocastro099/centralizador_git</a></p>
       </form>
     </main>
   );

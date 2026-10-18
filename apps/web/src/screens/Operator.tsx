@@ -50,7 +50,7 @@ type Feature = { id: string; repository_id: string; name: string; description: s
 type Run = { id: string; status: string; trigger: string; error: string | null; started_at: string; commits_added: number | null };
 
 export function Operator({ onSignOut }: { onSignOut: () => void }) {
-  const [tab, setTab] = useState<Tab>("tempo");
+  const [tab, setTab] = useState<Tab>("repos");
   const [notice, setNotice] = useState("");
   const [connections, setConnections] = useState<Connection[]>([]);
   const [repos, setRepos] = useState<Repo[]>([]);
@@ -93,7 +93,10 @@ export function Operator({ onSignOut }: { onSignOut: () => void }) {
   return (
     <div className="shell">
       <header className="top">
-        <div className="brand"><strong>Centralizador</strong><span>Painel do administrador</span></div>
+        <div className="brand">
+          <strong>Centralizador</strong>
+          <a href="https://github.com/guicastrocastro099/centralizador_git">guicastrocastro099/centralizador_git</a>
+        </div>
         <nav className="nav">
           <button aria-current={tab === "tempo" ? "page" : undefined} onClick={() => { setTab("tempo"); setSelected(null); }}>Linha do tempo</button>
           <button aria-current={tab === "repos" ? "page" : undefined} onClick={() => setTab("repos")}>Repositórios</button>
@@ -184,7 +187,7 @@ function Connections({ rows, onChange, onNotice }: { rows: Connection[]; onChang
 
 function RepoList({ rows, connections, onOpen, onChange, onNotice }: { rows: Repo[]; connections: Connection[]; onOpen: (id: string) => void; onChange: () => Promise<void>; onNotice: (text: string) => void }) {
   const [connectionId, setConnectionId] = useState(connections[0]?.id ?? "");
-  const [fullName, setFullName] = useState("");
+  const [fullName, setFullName] = useState("guicastrocastro099/centralizador_git");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -207,6 +210,12 @@ function RepoList({ rows, connections, onOpen, onChange, onNotice }: { rows: Rep
         <button className="primary" type="submit">Acompanhar</button>
       </form>
       <div className="cards">
+        {rows.some((repo) => repo.full_name === "guicastrocastro099/centralizador_git") ? null : (
+          <a className="card" href="https://github.com/guicastrocastro099/centralizador_git">
+            <header><strong>guicastrocastro099/centralizador_git</strong><span className="tag">GitHub</span></header>
+            <p className="muted">Repositório deste projeto. Entre com uma chave em Conexões e use Acompanhar para gravar os commits.</p>
+          </a>
+        )}
         {rows.map((repo) => (
           <button className="card" key={repo.id} onClick={() => onOpen(repo.id)}>
             <header><strong>{repo.full_name}</strong><span className="tag">{repo.visibility}</span></header>
