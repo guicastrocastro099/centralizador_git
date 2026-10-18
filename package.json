@@ -1,0 +1,17 @@
+{
+  "name": "centralizador",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/web"],
+  "scripts": {
+    "dev": "bun run src/dev-all.ts",
+    "dev:api": "bun --watch src/dev.ts",
+    "dev:web": "bun run --cwd apps/web dev",
+    "build": "bun run --cwd apps/web build",
+    "test": "bun test",
+    "bootstrap-users": "bun run scripts/bootstrap-users.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1"
+  }
+}

@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+.env.local
+apps/web/.env
+apps/web/.env.local
+.supabase
+supabase/.temp
+*.log
